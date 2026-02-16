@@ -12,3 +12,7 @@
 * 21:20
     - Created the `get_state.py` file to obtain the state of
       the webpage via the URL.
+
+* 21:50
+    - Added a `robots.txt` checker and a scroll function to avoid "lazy-loading"
+      to get the most out of the data.
