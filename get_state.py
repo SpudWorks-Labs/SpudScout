@@ -42,12 +42,21 @@ from playwright.sync_api import sync_playwright
 def can_scout_visit(url, user_agent="SpudScout"):
     """
     ~ Checks the robots.txt to see if SpudScout is allowed to crawl the URL. ~
+
+    Attributes:
+        - url                 (String) : The url to check for robot.txt with.
+        - user_agent          (String) : The user agent that we are using.
+
+    Returns:
+        - Boolean                      : If SpudScout can scrape the site.
     """
 
+    # ~ Create the necessary variables. ~ #
     parsed_url = urlparse(url)
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/robots.txt"
     robo_parser = RobotFileParser()
 
+    # ~ Try to check the robots.txt for ethicallity. ~ #
     try:
         robo_parser.set_url(base_url)
         robo_parser.read()
