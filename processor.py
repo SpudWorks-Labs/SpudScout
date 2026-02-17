@@ -27,13 +27,25 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 """
 
+# ~ Import Standard Libraries. ~ #
 import os
 
-
+# ~ Import Third-Party Modules. ~ #
 import cv2
 import numpy as np
 
+
 class VisionProcessor:
+    """
+    ~ This class allows SpudScout to process images with vision. ~
+
+    Functions:
+        __init__ : 
+        process_state :
+        draw_debug_overlay :
+        extract_chips :
+    """
+
     def __init__(self, dsf=1.0):
         self.dsf = dsf
         self.min_area = 400

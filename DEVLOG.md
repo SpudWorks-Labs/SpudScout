@@ -23,3 +23,7 @@
 * 06:53
     - The `processor.py` module now processes possible candidates for buttons
       in the image provided.
+
+
+### TO-DO
+[!] Update comments and documentation.
