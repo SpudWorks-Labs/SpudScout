@@ -24,6 +24,9 @@
     - The `processor.py` module now processes possible candidates for buttons
       in the image provided.
 
+* 20:03
+	- Created the skeleton of the `classifier.py` module.
+	- Updated the comments and documentation.
+
 
 ### TO-DO
-[!] Update comments and documentation.
