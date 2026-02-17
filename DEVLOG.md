@@ -28,5 +28,12 @@
 	- Created the skeleton of the `classifier.py` module.
 	- Updated the comments and documentation.
 
+* 20:58
+	- Finished the base of the `cassifier.py` module and now it can function.
+	- Now creating a `scout.py` file to orchestrate the pipelines.
+
+* 21:34
+	- It works as intended and can now read the text on the screen.
+
 
 ### TO-DO

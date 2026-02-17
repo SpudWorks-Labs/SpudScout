@@ -1,3 +1,4 @@
 *.png
 scout
 chips
+__pycache__
