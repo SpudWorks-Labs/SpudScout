@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                            File: processor.py
                             Date: 2026/02/17
-                        Version: 0.2-2026.02.17
+                        Version: 0.3-2026.02.17
 
 ===============================================================================
 
@@ -40,15 +40,29 @@ class VisionProcessor:
     ~ This class allows SpudScout to process images with vision. ~
 
     Functions:
-        __init__ : 
-        process_state :
-        draw_debug_overlay :
-        extract_chips :
+        __init__                       : Initialize the vision processor;
+        process_state                  : Process the web apps state.
+        draw_debug_overlay             : Create the debug image with overlays.
+        extract_chips                  : Extract chips from processed images.
     """
 
     def __init__(self, dsf=1.0):
+        """
+        ~ Initialize the Vision Processor Module. ~
+
+        Arguments:
+            - dsf              (Float) : The Device Scale Factor.
+
+        Attributes:
+            dsf                (Float) : The Device Scale Factor.
+            min_area             (Int) : The minimum size for the area 
+                                         of the clickables.
+            max_area             (Int) : The maximum size for the area
+                                         of the clickables.
+        """
+
         self.dsf = dsf
-        self.min_area = 400
+        self.min_area = 1500
         self.max_area = 150000
 
     def process_state(self, image_path):
@@ -72,8 +86,8 @@ class VisionProcessor:
         gray = cv2.cvtColor(raw_img, cv2.COLOR_BGR2GRAY)
         smoothed = cv2.bilateralFilter(gray, 9, 75, 75)
         edges = cv2.Canny(smoothed, 50, 150)
-        kernel = np.ones((3, 3,), np.uint8)
-        dilated = cv2.dilate(edges, kernel, iterations=1)
+        kernel = np.ones((5, 5), np.uint8)
+        dilated = cv2.dilate(edges, kernel, iterations=2)
         contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         candidates = []
 
@@ -122,12 +136,12 @@ class VisionProcessor:
 
             cv2.rectangle(overlay_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.circle(overlay_img, (cx_px, cy_px), 5, (0, 0, 255), -1)
-            cv2.putText(overlay_img, f"Area: {int(candidate["area"])}", (x, y - 10),
+            cv2.putText(overlay_img, f"Area: {int(candidate['area'])}", (x, y - 10),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-            cv2.imwrite(output_path, overlay_img)
+        cv2.imwrite(output_path, overlay_img)
 
-            print(f"[+] Debugging overlay saved to: {output_path}")
+        print(f"[+] Debugging overlay saved to: {output_path}")
 
     def extract_chips(self, image_path, candidates, output_dir="chips"):
         """
@@ -163,9 +177,34 @@ class VisionProcessor:
 
         return chip_paths
 
+    def clean_candidates(self, candidates):
+        """
+        ~ Removes overlapping boxes or redundant noise.
+          If one box is entirely inside another, we usually
+          only want the parent orthe specific child. For now,
+          we'll just filter by a stricter area. ~
+
+        Returns:
+            - List                     : A list of refined candidates.
+        """
+
+        refined = []
+
+        # ~ Check each candidate to refine. ~ #
+        for candidate in candidates:
+            x, y, w, h = candidate["bbox"]
+            aspect_ratio = w / float(h)
+
+            if aspect_ratio < 0.1:
+                continue
+
+            refined.append(candidate)
+
+        return refined
+
 
 if __name__ == "__main__":
     vp = VisionProcessor()
-    candidates = vp.process_state("state_capture.png")
+    candidates = vp.clean_candidates(vp.process_state("state_capture.png"))
     vp.draw_debug_overlay("state_capture.png", candidates)
     vp.extract_chips("state_capture.png", candidates)
