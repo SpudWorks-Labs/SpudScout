@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                             File: get_state.py
                             Date: 2026/02/16
-                        Version: 0.1-2026.02.16
+                        Version: 0.2-2026.02.17
 
 ===============================================================================
 
@@ -35,8 +35,6 @@ from urllib.parse import urlparse
 
 # ~ Import Third-Party Modules. ~ #
 from playwright.sync_api import sync_playwright
-
-
 
 
 def can_scout_visit(url, user_agent="SpudScout"):

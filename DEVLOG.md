@@ -16,3 +16,10 @@
 * 21:50
     - Added a `robots.txt` checker and a scroll function to avoid "lazy-loading"
       to get the most out of the data.
+
+* 04:52
+    - Created the `processor.py` file for the Visual Processing module.
+
+* 06:53
+    - The `processor.py` module now processes possible candidates for buttons
+      in the image provided.
