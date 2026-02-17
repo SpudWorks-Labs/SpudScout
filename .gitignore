@@ -1,2 +1,3 @@
-./state_capture.png
-./scout/
+*.png
+scout
+chips
