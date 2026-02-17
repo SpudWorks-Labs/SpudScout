@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                             File: get_state.py
                             Date: 2026/02/16
-                        Version: 0.2-2026.02.17
+                        Version: 0.3-2026.02.17
 
 ===============================================================================
 
@@ -79,8 +79,8 @@ def get_web_state(url, output_path="state_capture.png"):
 
     Returns:
         - Dict                     : The filename of the screenshot,
-                                        the device scale factor, and the
-                                        viewport size.
+                                     the device scale factor, and the
+                                     viewport size.
     """
 
     def human_scroll(page):
