@@ -71,7 +71,7 @@ Since we are guests on the web, SpudScout enforces the following rules:
 ## Roadmap
 
 Here is the following phase-map for the project:
-* *Phase 1:* CV-based button detection. (Canny Edge)
+* *Phase 1:* CV-based button detection. (Canny Edge) <COMPLETE>
 * *Phase 2:* GGUF-integrated intent parsing. (Ollama)
 * *Phase 3:* Autonomous "Spud-Loops" for multi-page navigation.
 
