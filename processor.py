@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                            File: processor.py
                             Date: 2026/02/17
-                        Version: 0.3-2026.02.17
+                        Version: 0.5.1-2026.02.17
 
 ===============================================================================
 
@@ -29,6 +29,7 @@
 
 # ~ Import Standard Libraries. ~ #
 import os
+import logging
 
 # ~ Import Third-Party Modules. ~ #
 import cv2
@@ -62,8 +63,8 @@ class VisionProcessor:
         """
 
         self.dsf = dsf
-        self.min_area = 1500
-        self.max_area = 150000
+        self.min_area = 800
+        self.max_area = 200000
 
     def process_state(self, image_path):
         """
@@ -80,14 +81,18 @@ class VisionProcessor:
 
         # ~ Check if the image can be read. ~ #
         if raw_img is None:
-            raise ValueError("Could not read the image at '{image_path}'!")
+            logging.error(f"VisionProcessor could not read image: {image_path}")
+
+            return []
 
         # ~ Convert to grayscale, apply Canny and locate contours within. ~ #
         gray = cv2.cvtColor(raw_img, cv2.COLOR_BGR2GRAY)
         smoothed = cv2.bilateralFilter(gray, 9, 75, 75)
         edges = cv2.Canny(smoothed, 50, 150)
+
         kernel = np.ones((5, 5), np.uint8)
-        dilated = cv2.dilate(edges, kernel, iterations=2)
+        dilated = cv2.dilate(edges, kernel, iterations=1)
+
         contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         candidates = []
 
@@ -97,51 +102,59 @@ class VisionProcessor:
 
             # ~ Check if the area is within tha area range. ~ #
             if self.min_area < area < self.max_area:
+                
+                # ~ Calculate the middle click point. ~ #
                 M = cv2.moments(contour)
 
                 if M["m00"] != 0:
-                    cx_px = int(M["m10"] / M["m00"])
-                    cy_px = int(M["m01"] / M["m00"])
-
-                    cx_pt = cx_px / self.dsf
-                    cy_pt = cy_px / self.dsf
+                    cx = (int(M["m10"] / M["m00"])) / self.dsf
+                    cy = (int(M["m01"] / M["m00"])) / self.dsf
 
                     candidates.append({
-                        "point": (cx_pt, cy_pt),
+                        "point": (cx, cy),
                         "area": area,
                         "bbox": cv2.boundingRect(contour)
                     })
 
-        return candidates
+        return self.clean_candidates(candidates)
 
-    def draw_debug_overlay(self, image_path, candidates, output_path="debug_vision.png"):
+    def clean_candidates(self, candidates):
         """
-        ~ Draws bounding boxes and clicking points on a copy of the screenshot
-          to verify what the VisionProcessor is detecting. ~
+        ~ Removes overlapping boxes or redundant noise.
+          If one box is entirely inside another, we usually
+          only want the parent or the specific child. For now,
+          we'll just filter by a stricter area. ~
 
-        Attributes:
-            - image_path      (String) : The path to the image.
-            - candidates        (List) : A list of all of the candidates.
-            - output_path     (String) : A filename to save the debug image.
+        Returns:
+            - List                     : A list of refined candidates.
         """
 
-        overlay_img = cv2.imread(image_path)
+        if not candidates:
+            return []
 
-        # ~ Locate each candidate and mark it with a box and a dot. ~ #
-        for candidate in candidates:
+        candidates = sorted(candidates, key=lambda x: x['area'], reverse=True)
+        refined = []
+
+        for i, candidate in enumerate(candidates):
             x, y, w, h = candidate["bbox"]
+            aspect_ratio = w / float(h)
 
-            cx_px = int(candidate["point"][0] * self.dsf)
-            cy_px = int(candidate["point"][1] * self.dsf)
+            if aspect_ratio < 0.05 or aspect_ratio > 20:
+                continue
 
-            cv2.rectangle(overlay_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            cv2.circle(overlay_img, (cx_px, cy_px), 5, (0, 0, 255), -1)
-            cv2.putText(overlay_img, f"Area: {int(candidate['area'])}", (x, y - 10),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+            is_redundant = False
 
-        cv2.imwrite(output_path, overlay_img)
+            for ref in refined:
+                rx, ry, rw, rh = ref["bbox"]
 
-        print(f"[+] Debugging overlay saved to: {output_path}")
+                if (x >= rx and y >= ry and (x+w) <= (rx+rw) and (y+h) <= (ry+rh)):
+                    is_redundant = True
+                    break
+
+            if not is_redundant:
+                refined.append(candidate)
+        
+        return refined
 
     def extract_chips(self, image_path, candidates, output_dir="chips"):
         """
@@ -163,44 +176,50 @@ class VisionProcessor:
             os.makedirs(output_dir)
 
         img = cv2.imread(image_path)
+        if img is None: return []
+
         chip_paths = []
 
         # ~ Save each chip from the candidate. ~ #
         for i, candidate in enumerate(candidates):
             x, y, w, h = candidate["bbox"]
-            chip = img[y:y + h, x:x + w]
-            chip_name = f"{output_dir}/chip_{i}.png"
-            cv2.imwrite(chip_name, chip)
-            chip_paths.append(chip_name)
+            pad = 2
+            chip = img[max(0, y - pad):y + h + pad, max(0, x - pad):x + w + pad]
+            path = f"{output_dir}/chip_{i}.png"
 
-        print(f"[+] Extracted {len(chip_paths)} chips to {output_dir}/")
+            cv2.imwrite(path, chip)
+            chip_paths.append(path)
+
+        logging.info(f"Extracted {len(chip_paths)} chips.")
 
         return chip_paths
 
-    def clean_candidates(self, candidates):
+
+    def draw_debug_overlay(self, image_path, candidates, output="debug_vision.png"):
         """
-        ~ Removes overlapping boxes or redundant noise.
-          If one box is entirely inside another, we usually
-          only want the parent orthe specific child. For now,
-          we'll just filter by a stricter area. ~
+        ~ Draws bounding boxes and clicking points on a copy of the screenshot
+          to verify what the VisionProcessor is detecting. ~
 
-        Returns:
-            - List                     : A list of refined candidates.
+        Attributes:
+            - image_path      (String) : The path to the image.
+            - candidates        (List) : A list of all of the candidates.
+            - output          (String) : A filename to save the debug image.
         """
 
-        refined = []
+        img = cv2.imread(image_path)
+        if img is None: return
 
-        # ~ Check each candidate to refine. ~ #
+        # ~ Locate each candidate and mark it with a box and a dot. ~ #
         for candidate in candidates:
             x, y, w, h = candidate["bbox"]
-            aspect_ratio = w / float(h)
 
-            if aspect_ratio < 0.1:
-                continue
+            px = int(candidate["point"][0] * self.dsf)
+            py = int(candidate["point"][1] * self.dsf)
 
-            refined.append(candidate)
+            cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.circle(img, (px, py), 5, (0, 0, 255), -1)
 
-        return refined
+        cv2.imwrite(output, img)
 
 
 if __name__ == "__main__":

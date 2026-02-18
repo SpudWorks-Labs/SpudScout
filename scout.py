@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                              File: scout.py
                             Date: 2026/02/17
-                        Version: 0.3.1-2026.02.18
+                        Version: 0.5.1-2026.02.18
 
 ===============================================================================
 

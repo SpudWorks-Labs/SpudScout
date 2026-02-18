@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                             File: get_state.py
                             Date: 2026/02/16
-                        Version: 0.3-2026.02.17
+                        Version: 0.5.1-2026.02.17
 
 ===============================================================================
 

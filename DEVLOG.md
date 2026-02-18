@@ -53,6 +53,14 @@
 
 * 18:18
 	- Refactored the `get_state.py` module now moving onto `processing.py`.
+	- The following needs to be done for `processing.py`:
+		* Keep the overlapping box that makes the most sense.
+		* Safety check to avoid the `ValueError` that would crash the program.
+		* Read image once pass it around for efficiency.
+
+* 18:50
+	- Refactored the `processing.py` module and now moving on to the `classifier.py`
+	  after a short break.
 
 ### TO-DO
 [!] Refactor code.
