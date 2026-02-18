@@ -35,5 +35,19 @@
 * 21:34
 	- It works as intended and can now read the text on the screen.
 
+*2026/02/18*
+* 17:04
+	- Staring an AI code audit and found the following on `scout.py`:
+		* Keep browser open for agentic actions.
+		* Rename `scrape` to `observe` for proper naming convention.
+		* Need error handling on `get_web_state()` to avoid crashes.
+		* Lacks memory, a `current_state` variable could help.
+		* `logging` is better than `print` in these circumstances.
+
+* 17:44
+	- Refactored `scout.py` and now moving on to `get_state.py`.
 
 ### TO-DO
+[!] Refactor code.
+[!] Clean the code.
+[!] AI code audit.

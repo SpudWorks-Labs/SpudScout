@@ -5,7 +5,7 @@
        Description: An Agentic Web Scraper that uses Computer Vision.
                              File: scout.py
                             Date: 2026/02/17
-                        Version: 0.3-2026.02.17
+                        Version: 0.3.1-2026.02.18
 
 ===============================================================================
 
@@ -29,29 +29,88 @@
 
 # ~ Import System Modules. ~ #
 import sys
+import logging
+import json
 
-# ~ Import Custom Modules. ~ #
-import get_state
+# ~ Import Local Modules. ~ #
+from get_state import get_web_state
 from processor import VisionProcessor
 from classifier import ElementClassifier
 
 
+logging.basicConfig(level=logging.INFO, format='[*] %(message)s')
+
+
 class Scout:
+    """
+    ~ The main class for SpudScout. ~
+
+    Functions:
+        __init__                       : Initialize the SpudScout.
+        observe                        : Ethically observe a site.
+        export_state                   : Export the webpage state as JSON.
+    """
+
     def __init__(self):
+        """
+        ~ Initialize the SpudScout and its attributes. ~
+
+        Attributes:
+            - processor
+                     (VisionProcessor) : The module to process an image.
+            - classifier               
+                   (ElementClassifier) : The module to classify each element.
+            - current_state     (List) : A list of current elements.
+        """
+
         self.processor = VisionProcessor()
         self.classifier = ElementClassifier()
+        self.current_state = []
 
-    def scrape(self, url):
-        state = get_state.get_web_state(url)
+    def observe(self, url):
+        """
+        ~ Ethically observe the data from the web url. ~
 
-        candidates = self.processor.process_state(state["screenshot"])
-        cleaned = self.processor.clean_candidates(candidates)
-        chip_paths = self.processor.extract_chips(state["screenshot"], cleaned)
+        Arguments:
+            - url             (String) : The url to the webpage.
+        """
 
-        results = self.classifier.classify_candidates(cleaned)
+        logging.info(f"Initiating observation on: {url}")
 
-        for result in results:
-            print(f"    Element: {result.get('text', 'Unknown')}")
+        state = get_web_state(url)
+
+        if not state:
+            logging.error("Failed to capture data, check url or the robots.txt")
+            return []
+
+        self.processor.dsf = state.get("dsf", 1.0)
+
+        raw_candidates = self.processor.process_state(state["screenshot"])
+        cleaned = self.processor.clean_candidates(raw_candidates)
+
+        self.processor.extract_chips(state["screenshot"], cleaned)
+        self.current_state = self.classifier.classify_candidates(cleaned)
+
+        self.processor.draw_debug_overlay(state["screenshot"], self.current_state)
+
+        logging.info(f"Observation complete. Found {len(self.current_state)} interactive elements.")
+
+        return self.current_state
+
+
+    def export_state(self, filename="web_state.json"):
+        """
+        ~ Export the web apps visual state into a JSON file. ~
+        """
+
+        if not self.current_state:
+            logging.warning("No state available to export.")
+            return
+
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(self.current_state, f, indent=4)
+
+        logging.info(f"State successfully exported to '{filename}'!")
 
 
 def display_usage():
@@ -63,12 +122,18 @@ def display_usage():
 
 
 if __name__ == "__main__":
-    scout = Scout()
-    args = sys.argv[1:]
-
-    if not args:
+    if len(sys.argv) < 2:
         display_usage()
+        sys.exit(1)
 
-    url = args[0]
+    target_url = sys.argv[1]
 
-    scout.scrape(url)
+    scout = Scout()
+    results = scout.observe(target_url)
+
+    if results:
+        scout.export_state()
+
+        for result in results:
+            print(f"    - [{result['point']}] : {result.get('text', 'Unknown')}")
+            
