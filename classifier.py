@@ -30,8 +30,10 @@
 # ~ Import Standard Modules. ~ #
 import os
 import json
+import re
+import logging
 
-# ~ Import Third-PArty Modules. # ~
+# ~ Import Third-Party Modules. # ~
 import cv2
 import pytesseract
 import numpy as np
@@ -57,6 +59,17 @@ class ElementClassifier:
         """
 
         self.tesseract_config = r'--oem 3 --psm 7'
+
+    def _clean_ocr_noise(self, text):
+        """
+        ~ Removes common OCR artifacts like pipes and underscores. ~
+        """
+
+        text = re.sub(r'^[|I_~.\- ]+', '', text)
+        text = re.sub(r'[|I_~.\- ]+$', '', text)
+        text = " ".join(text.split())
+
+        return text 
 
     def extract_text_from_chip(self, chip_path):
         """
@@ -89,7 +102,7 @@ class ElementClassifier:
             if len(text_inverted) > len(text):
                 text = text_inverted
 
-        return text
+        return self._clean_ocr_noise(text)
 
     def classify_candidates(self, candidates, chip_dir="chips"):
         """
@@ -102,32 +115,26 @@ class ElementClassifier:
 
         classified_elements = []
 
-        print(f"[*] Analyzing {len(candidates)} UI elements")
+        logging.info(f"[*] Analyzing {len(candidates)} UI elements")
 
         for i, candidate in enumerate(candidates):
             chip_path = f"{chip_dir}/chip_{i}.png"
-            raw_text = self.extract_text_from_chip(chip_path)
-            clean_text = raw_text.replace("\n", " ").strip()
+            clean_text = self.extract_text_from_chip(chip_path)
 
             if len(clean_text) >= 2:
                 candidate["text"] = clean_text
                 classified_elements.append(candidate)
 
-                print(f"    -> [Chip {i}] Found: '{clean_text}'")
+                logging.debug(f"[Chip {i}] Found: '{clean_text}'")
 
             else:
+                # Expand later for icon/image recognition.
                 pass
 
         return classified_elements
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     classifier = ElementClassifier()
-
-    dummy_candidates = [{"id": i for i in range(5)}]
-    results = classifier.classify_candidates(dummy_candidates)
-
-    print("[+] Classification complete. Sample results:")
-
-    for result in results:
-        print(f"    Element: {result.get('text', 'Unknown')}")
+    print("Classifier initialized. Ready for Phase 3!")

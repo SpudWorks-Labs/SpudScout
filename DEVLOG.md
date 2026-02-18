@@ -62,6 +62,16 @@
 	- Refactored the `processing.py` module and now moving on to the `classifier.py`
 	  after a short break.
 
+* 19:56
+	- The `classifier.py` module needs the following refactors:
+		* Regex cleaning to strip common OCR hallucinations.
+		* Log instead of printing.
+		* `--psm 6` might be bettter than `--psm 7` for the config.
+
+* 20:17
+	- Refactored the `classifier.py` module.
+	
+
 ### TO-DO
 [!] Refactor code.
 [!] Clean the code.
