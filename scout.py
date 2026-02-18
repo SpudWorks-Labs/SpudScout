@@ -33,7 +33,7 @@ import logging
 import json
 
 # ~ Import Local Modules. ~ #
-from get_state import get_web_state
+from get_state import StateManager
 from processor import VisionProcessor
 from classifier import ElementClassifier
 
@@ -63,6 +63,7 @@ class Scout:
             - current_state     (List) : A list of current elements.
         """
 
+        self.state_manager = StateManager()
         self.processor = VisionProcessor()
         self.classifier = ElementClassifier()
         self.current_state = []
@@ -77,7 +78,7 @@ class Scout:
 
         logging.info(f"Initiating observation on: {url}")
 
-        state = get_web_state(url)
+        state = self.state_manager.capture_view(url)
 
         if not state:
             logging.error("Failed to capture data, check url or the robots.txt")

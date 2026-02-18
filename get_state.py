@@ -30,6 +30,7 @@
 
 # ~ Import Standard Modules. ~ #
 import time
+import logging
 from urllib.robotparser import RobotFileParser
 from urllib.parse import urlparse
 
@@ -37,106 +38,110 @@ from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 
 
-def can_scout_visit(url, user_agent="SpudScout"):
+class StateManager:
     """
-    ~ Checks the robots.txt to see if SpudScout is allowed to crawl the URL. ~
-
-    Attributes:
-        - url                 (String) : The url to check for robot.txt with.
-        - user_agent          (String) : The user agent that we are using.
-
-    Returns:
-        - Boolean                      : If SpudScout can scrape the site.
+    ~ Manages the Playwright lifecycle and capture the
+      visual state of the web. ~
     """
 
-    # ~ Create the necessary variables. ~ #
-    parsed_url = urlparse(url)
-    base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/robots.txt"
-    robo_parser = RobotFileParser()
+    def __init__(self, headless=False):
+        self.playwright = None
+        self.browser = None
+        self.context = None
+        self.page = None
+        self.headless = headless
 
-    # ~ Try to check the robots.txt for ethicallity. ~ #
-    try:
-        robo_parser.set_url(base_url)
-        robo_parser.read()
+        moz_agent = "Mozilla/5.0 (X11; Linux x86_64)"
+        scout_repo = "https://github.com/SpudWorks-Labs/SpudScout"
+        scout_agent = f"SpudScout/0.3.1 (Bot; +{scout_repo})"
+        self.user_agent = f"{moz_agent} {scout_agent}"
 
-        allowed = robo_parser.can_fetch(user_agent, url)
-
-        return allowed
-
-    except Exception as e:
-        print(f"[!] Warning: Could not read the robots.txt for {base_url}: {e}")
-
-        return False
-
-
-def get_web_state(url, output_path="state_capture.png"):
-    """
-    ~ Obtain the state of the web url. ~
-
-    Attributes:
-        - url             (String) : The URL of the Web App to check.
-        - output_path     (String) : Filename to save the screenshot state.
-
-    Returns:
-        - Dict                     : The filename of the screenshot,
-                                     the device scale factor, and the
-                                     viewport size.
-    """
-
-    def human_scroll(page):
+    def start(self):
         """
-        ~ Scrolls down and back up to trigger lazy-loading and ensure the
-          'Visual State' is fully rendered. ~ 
+        ~ Launch the browser session. ~
         """
 
-        # ~ Scroll down in increments. ~ #
-        for i in range(3):
-            page.mouse.wheel(0, 720)
-            time.sleep(0.5)
-        
-        # ~ Snap back to the top for a clean screenshot. ~ #
-        page.evaluate("window.scrollTo(0, 0)")
-        time.sleep(1)
-
-    agent_name = "SpudScout"
-
-    if not can_scout_visit(url, agent_name):
-        print(f"[ERROR] Access Denied by robots.txt for {url}. Respecting sites policy.")
-
-        return None
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (X11; Linux x86_64) SpudScout/1.0 (Bot; +https://github.com/SpudWorks-Labs/SpudScout)",
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(headless=self.headless)
+        self.context = self.browser.new_context(
+            user_agent=self.user_agent,
             viewport={'width': 1280, 'height': 720}
         )
-        page    = context.new_page()
+        self.page = self.context.new_page()
 
-        print(f"[*] Navigating to '{url}' now...")
-        
-        page.goto(url, wait_until="domcontentloaded")
+        logging.info("Browser session started!")
 
-        human_scroll(page)
+    def can_scout_visit(self, url):
+        """
+        ~ Ethical robots.txt validation. ~ #
+        """
 
-        dsf     = page.evaluate("window.devicePixelRatio")
-        viewport_size = page.viewport_size
+        parsed_url = urlparse(url)
+        base_url = f"{parsed_url.scheme}://{parsed_url.netloc}/robots.txt"
+        robo_parser = RobotFileParser()
 
-        page.screenshot(path=output_path, full_page=False)
+        try:
+            robo_parser.set_url(base_url)
+            robo_parser.read()
 
-        print(f"[+] State Captured!")
-        print(f"    - Viewport: {viewport_size['width']}x{viewport_size['height']}")
-        print(f"    - Device Scale Factor: {dsf}")
-        print(f"    - Screenshot Saved: {output_path}")
+            return robo_parser.can_fetch("SpudScout", url)
 
-        browser.close()
+        except Exception as e:
+            logging.warning(f"Could not parse robots.txt at {base_url}: {e}")
+
+            return False
+
+    def capture_view(self, url, output_path="state_capture.png"):
+        """
+        ~ Navigates and captures the current pixels. ~
+        """
+
+        if not self.page:
+            self.start()
+
+        if not self.can_scout_visit(url):
+            logging.error(f"Access denied by robots.txt for {url}")
+
+            return None
+
+        logging.info(f"Navigating to {url}")
+
+        self.page.goto(url, wait_until="networkidle")
+
+        self._human_scroll()
+
+        dsf = self.page.evaluate("window.devicePixelRatio")
+        self.page.screenshot(path=output_path)
 
         return {
             "screenshot": output_path,
             "dsf": dsf,
-            "viewport": viewport_size
+            "viewport": self.page.viewport_size,
+            "page_handle": self.page
         }
 
+    def _human_scroll(self):
+        """
+        ~ Private method to trigger lazy-loading. ~
+        """
 
-if __name__ == "__main__":
-    state = get_web_state("https://news.ycombinator.com")
+        for _ in range(3):
+            self.page.mouse.wheel(0, 500)
+            time.sleep(0.5)
+
+        self.page.evaluate("window.scrollTo(0, 0)")
+        time.sleep(0.5)
+
+    def shutdown(self):
+        """
+        ~ Cleanly closes all playwright resources. ~
+        """
+
+        if self.browser:
+            self.browser.close()
+
+        if self.playwright:
+            self.playwright.stop()
+
+        logging.info("Browser session was terminated.")
+

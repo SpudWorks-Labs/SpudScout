@@ -46,6 +46,13 @@
 
 * 17:44
 	- Refactored `scout.py` and now moving on to `get_state.py`.
+	- `get_state.py` needs the following changes:
+		* The browser needs a seperate class to persist.
+		* Add a network idle to ensure all is loaded.
+		* Returning the `page` as well as the screenshot is better.
+
+* 18:18
+	- Refactored the `get_state.py` module now moving onto `processing.py`.
 
 ### TO-DO
 [!] Refactor code.
