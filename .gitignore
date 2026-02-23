@@ -1,4 +1,8 @@
 *.png
+state_capture*
 scout
 chips
 __pycache__
+.env
+old
+assets
