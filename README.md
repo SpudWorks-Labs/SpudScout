@@ -2,7 +2,7 @@
 
 An **Agentic Visual Web Scraper** capable of complex automation without the
 "Selector Hell" of modern, obfuscated web apps. By leveraging **Canny Edge 
-Detection** and **Quantized LLMs**, SpudScout navigates the web like a human:
+Detection** and **Visual LMs**, SpudScout navigates the web like a human:
 by looking at the interface, not just the source code.
 
 ---
@@ -16,7 +16,7 @@ resilience by prioritizing **visual landmarks** over brittle CSS selectors.
 * **Theme-Agnostic:** Grayscale + Canny processing ensures UI landmarks are
                       identified regardless of Dark/Light mode transitions.
 * **Privacy-First:** 100% local execution. No screenshots or data ever leave
-                     your machine for third-party API processing.
+                     your machine for third-party API processing. (On-Hold)
 * **Resource Lean:** Architected for **CPU-only** environments using GGUF
                      quantization for local inference.
 
