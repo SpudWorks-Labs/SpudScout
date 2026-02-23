@@ -1,5 +1,3 @@
-*.png
-state_capture*
 scout
 chips
 __pycache__
