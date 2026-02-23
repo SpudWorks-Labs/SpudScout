@@ -70,9 +70,18 @@
 
 * 20:17
 	- Refactored the `classifier.py` module.
-	
+
+* 21:56
+	- About to step away soon, need to finish the artifacts that appear.
+
+*2026/02/19*
+* 21:44
+	- Picking away at finding each element with many filters.
+
+*2026/02/23*
+* 21:11
+	- Created the `ARCHITECTURE.md` file so I can stop playing with values and 
+	  try a more calculated aproach... Which I should have done to begin with.
+
 
 ### TO-DO
-[!] Refactor code.
-[!] Clean the code.
-[!] AI code audit.
